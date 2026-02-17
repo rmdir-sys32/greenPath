@@ -1,65 +1,78 @@
-import Image from "next/image";
+'use client'
+import Map from "@/components/Map";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { getUserLocation } from "@/utils/getUserLocation";
+import { useEffect, useRef, useState } from "react";
 
 export default function Home() {
+  // userLocation is now [number, number] | null
+  const { userLocation } = getUserLocation();
+  const destination = [81.0983169, 26.951515];
+
+  const [isFocused, setIsFocused] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  // 📱 Mobile Keyboard Logic: Unfocus when "Back" button is pressed
+  useEffect(() => {
+    const handleResize = () => {
+      if (typeof window !== "undefined" && window.visualViewport) {
+        // If viewport height > 80% of screen, keyboard is closed
+        if (window.visualViewport.height > window.innerHeight * 0.8) {
+          setIsFocused(false);
+          inputRef.current?.blur();
+        }
+      }
+    };
+
+    if (typeof window !== "undefined" && window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleResize);
+    }
+    return () => {
+      if (typeof window !== "undefined" && window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleResize);
+      }
+    };
+  }, []);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="relative z-10 flex flex-col items-center w-screen h-[100dvh] mx-auto my-auto overflow-hidden">
+
+      <div className='relative flex flex-col -z-10 w-full h-full md:w-4/5 md:h-4/5 border-black bg-gray-200 my-auto md:border rounded-xl shadow-xl overflow-hidden'>
+
+        {/* Pass array directly to Map */}
+        <Map userLocation={userLocation} destination={destination} />
+
+        {/* Display Coordinates (Array Indexing) */}
+        <div className="absolute top-4 left-4 bg-white/90 backdrop-blur p-2 px-3 rounded-lg text-xs font-mono shadow-sm z-10 border border-gray-200">
+          📍 {userLocation ? `${userLocation[1].toFixed(4)}, ${userLocation[0].toFixed(4)}` : "Locating..."}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+
+        {/* <AirQualityCard data={DEFAULT_DATA} /> */}
+
+        {/* 📱 Dynamic Input Box */}
+        <div
+          className={`
+            absolute left-1/2 -translate-x-1/2 z-20 w-full flex justify-center 
+            transition-all duration-300 ease-out
+            /* Mobile: Move to 40% from bottom if focused */
+            ${isFocused ? 'bottom-[40%]' : 'bottom-6'} 
+            /* PC: Always bottom-6 */
+            md:bottom-6
+          `}
+        >
+          <div className="flex w-11/12 md:w-1/3 gap-2 bg-white p-2 rounded-xl shadow-2xl">
+            <Input
+              ref={inputRef}
+              className="relative bg-gray-50 border-gray-200 text-black placeholder:text-gray-400 focus-visible:ring-offset-0"
+              placeholder="Enter Destination"
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white">Go</Button>
+          </div>
         </div>
-      </main>
-    </div>
+
+      </div>
+    </main>
   );
 }
