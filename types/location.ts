@@ -12,6 +12,8 @@ export interface GeocodingResult {
 	center: Coordinates;
 	relevance: number;
 	text: string;
+	secondaryText: string;
+	displayLabel: string;
 }
 
 /** State for location-related hooks */

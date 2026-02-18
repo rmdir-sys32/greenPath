@@ -1,36 +1,109 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GreenPath UI (Next.js)
 
-## Getting Started
+Frontend for GreenPath: pollution-aware route discovery and comparison UI.
 
-First, run the development server:
+## Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Next.js 16 (App Router)
+- React 19 + TypeScript
+- Tailwind CSS
+- Mapbox GL + Leaflet ecosystem
+- Axios for backend integration
+
+## Project Architecture
+
+```
+greenpath-ui/
+├─ app/
+│  ├─ page.tsx                     # composition root for app experience
+│  └─ api/geocode/route.ts         # proxy to Nominatim geocoding API
+├─ components/
+│  ├─ Map.tsx                      # base map + route rendering
+│  ├─ SearchBar.tsx                # origin/destination search + suggestions
+│  ├─ RouteComparisonPanel.tsx     # route cards and route switching
+│  ├─ HealthExposureWidget.tsx     # exposure delta card
+│  └─ ...                          # UI/supporting widgets
+├─ hooks/
+│  ├─ useRoute.ts                  # route fetch lifecycle + dedupe
+│  ├─ useGeocoder.ts               # debounced geocoder
+│  ├─ useHealthScore.ts            # route exposure calculations
+│  └─ useUserLocation.ts           # GPS/manual source of truth
+├─ services/
+│  ├─ routeService.ts              # fetch Mapbox candidates + backend scoring
+│  └─ geocodingService.ts          # geocoder service adapters
+├─ lib/
+│  ├─ constants.ts                 # endpoints + app constants
+│  └─ exposure.ts                  # pure exposure logic
+├─ types/                          # shared TS models
+├─ Dockerfile
+└─ docker-compose.yml
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Data Flow
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. User sets start/destination in `SearchBar`.
+2. `useRoute` requests route candidates from Mapbox through `routeService`.
+3. UI sends all candidates to backend `/score-routes` for AQI scoring.
+4. Backend returns fully sorted routes; UI renders map + comparison cards + health widgets.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Prerequisites
 
-## Learn More
+- Node.js 20+
+- npm 10+
+- Backend running (`backend-2`) reachable by UI
 
-To learn more about Next.js, take a look at the following resources:
+## Environment Variables
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Create `.env.local` in this folder:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_MAPBOX_TOKEN=your_mapbox_public_token
+```
 
-## Deploy on Vercel
+## Local Initialization (Team Setup)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm install
+npm run dev
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Open: `http://localhost:3000`
+
+## Quality Commands
+
+```bash
+npm run lint
+npm run build
+npm run start
+```
+
+## Docker
+
+### Build & Run (direct)
+
+```bash
+docker build -t greenpath-ui .
+docker run --rm -p 3000:3000 \
+	-e NEXT_PUBLIC_API_URL=http://host.docker.internal:8000 \
+	-e NEXT_PUBLIC_MAPBOX_TOKEN=your_mapbox_public_token \
+	greenpath-ui
+```
+
+### Docker Compose
+
+```bash
+docker compose up --build
+```
+
+## Notes for Team
+
+- `NEXT_PUBLIC_*` variables are baked into client output at build/runtime boundaries.
+- Keep UI endpoint aligned with backend host/port (`NEXT_PUBLIC_API_URL`).
+- For same-place-name ambiguity, suggestions show primary + city/state context.
+
+## Troubleshooting
+
+- **No routes shown**: check backend health at `http://localhost:8000/health`.
+- **Wrong location selected**: verify geocoder dropdown secondary text and choose full match.
+- **Map not loading**: ensure valid `NEXT_PUBLIC_MAPBOX_TOKEN`.

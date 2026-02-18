@@ -18,11 +18,19 @@ interface RouteComparisonPanelProps {
 	onSelectRoute: (index: number) => void;
 }
 
-function getAbsoluteAQILevel(pm25: number): { label: string; color: string } {
+function getAbsoluteAQILevel(
+	pm25: number,
+	isBest: boolean
+): { label: string; color: string } {
+	if (isBest)
+		return {
+			label: "",
+			color: ``,
+		};
 	if (pm25 > 75)
 		return {
 			label: "Unhealthy",
-			color: "bg-red-100 text-red-700 border-red-200",
+			color: ` bg-red-100 text-red-700 border-red-200 `,
 		};
 	if (pm25 > 35)
 		return {
@@ -152,7 +160,7 @@ const RouteCard: React.FC<RouteCardProps> = ({
 	onSelect,
 }) => {
 	const relativeBadge = getRelativeLabel(route.isBest);
-	const absoluteBadge = getAbsoluteAQILevel(route.avgPm25);
+	const absoluteBadge = getAbsoluteAQILevel(route.avgPm25, route.isBest);
 
 	return (
 		<button

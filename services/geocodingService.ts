@@ -8,6 +8,55 @@ import type { Coordinates, GeocodingResult } from "@/types/location";
 
 const GEOCODE_API_URL = "/api/geocode";
 
+interface NominatimAddress {
+	city?: string;
+	town?: string;
+	village?: string;
+	county?: string;
+	state_district?: string;
+	state?: string;
+	country?: string;
+	postcode?: string;
+}
+
+interface NominatimSearchItem {
+	place_id: number | string;
+	display_name: string;
+	lon: string;
+	lat: string;
+	importance?: number | string;
+	address?: NominatimAddress;
+}
+
+function buildPrimaryAndSecondary(item: NominatimSearchItem): {
+	primary: string;
+	secondary: string;
+	displayLabel: string;
+} {
+	const fallbackParts = item.display_name
+		.split(",")
+		.map((value) => value.trim())
+		.filter(Boolean);
+
+	const primary = fallbackParts[0] || item.display_name;
+	const locality =
+		item.address?.city ||
+		item.address?.town ||
+		item.address?.village ||
+		item.address?.county ||
+		"";
+	const state = item.address?.state || item.address?.state_district || "";
+	const country = item.address?.country || "";
+
+	const preferredSecondary = [locality, state, country]
+		.filter(Boolean)
+		.join(", ");
+	const secondary = preferredSecondary || fallbackParts.slice(1, 4).join(", ");
+	const displayLabel = secondary ? `${primary}, ${secondary}` : primary;
+
+	return { primary, secondary, displayLabel };
+}
+
 /**
  * Forward geocode: convert a text query into coordinates.
  * Uses local API route to proxy to Nominatim (avoids CORS).
@@ -15,7 +64,7 @@ const GEOCODE_API_URL = "/api/geocode";
 export async function geocodeAddress(
 	query: string,
 	limit: number = 5,
-	proximity?: Coordinates,
+	proximity?: Coordinates
 ): Promise<GeocodingResult[]> {
 	if (!query.trim()) return [];
 
@@ -38,13 +87,18 @@ export async function geocodeAddress(
 		const data = await res.json();
 		if (!data?.length) return [];
 
-		return data.map((item: any) => ({
-			id: String(item.place_id),
-			placeName: item.display_name,
-			center: [parseFloat(item.lon), parseFloat(item.lat)] as Coordinates,
-			relevance: parseFloat(item.importance) || 0.5,
-			text: item.display_name.split(",")[0], // First part = main name
-		}));
+		return (data as NominatimSearchItem[]).map((item) => {
+			const labels = buildPrimaryAndSecondary(item);
+			return {
+				id: String(item.place_id),
+				placeName: item.display_name,
+				center: [parseFloat(item.lon), parseFloat(item.lat)] as Coordinates,
+				relevance: parseFloat(String(item.importance ?? "0.5")) || 0.5,
+				text: labels.primary,
+				secondaryText: labels.secondary,
+				displayLabel: labels.displayLabel,
+			};
+		});
 	} catch (error) {
 		console.error("[geocodingService] Error:", error);
 		return [];
@@ -56,7 +110,7 @@ export async function geocodeAddress(
  */
 export async function getCoordinatesForQuery(
 	query: string,
-	proximity?: Coordinates,
+	proximity?: Coordinates
 ): Promise<Coordinates | null> {
 	const results = await geocodeAddress(query, 1, proximity);
 	return results.length > 0 ? results[0].center : null;
@@ -66,7 +120,7 @@ export async function getCoordinatesForQuery(
  * Reverse geocode: convert coordinates to a place name.
  */
 export async function reverseGeocode(
-	coords: Coordinates,
+	coords: Coordinates
 ): Promise<string | null> {
 	try {
 		const params = new URLSearchParams({
