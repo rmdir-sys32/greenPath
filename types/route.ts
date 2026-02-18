@@ -40,6 +40,20 @@ export interface RouteApiResponse {
 	best_index: number;
 }
 
+export interface RouteCandidateInput {
+	geometry: GeoJSON.Geometry;
+	duration: number;
+	distance: number;
+}
+
+export interface ScoreRoutesRequest {
+	start_lat: number;
+	start_lon: number;
+	end_lat: number;
+	end_lon: number;
+	routes: RouteCandidateInput[];
+}
+
 /** A single route as a GeoJSON Feature (for Mapbox rendering) */
 export interface RouteFeature {
 	type: "Feature";

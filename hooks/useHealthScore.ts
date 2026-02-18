@@ -18,21 +18,21 @@ interface UseHealthScoreReturn {
 }
 
 /**
- * @param bestRouteStats - Stats of the green (best) route
- * @param defaultDurationMin - Duration of the default/fastest route (for comparison)
- * @param defaultPm25 - PM2.5 of the default route (for comparison)
+ * @param selectedRouteStats - Stats of the currently selected route
+ * @param referenceDurationMin - Duration of the reference route (usually greenest)
+ * @param referencePm25 - PM2.5 of the reference route (usually greenest)
  * @param isVulnerable - Whether user has vulnerable mode enabled
  * @param transportMode - Current transport mode
  */
 export function useHealthScore(
-	bestRouteStats: RouteStats | null,
-	defaultDurationMin: number = 0,
-	defaultPm25: number = 0,
+	selectedRouteStats: RouteStats | null,
+	referenceDurationMin: number = 0,
+	referencePm25: number = 0,
 	isVulnerable: boolean = false,
-	transportMode: TransportMode = TransportMode.DRIVING,
+	transportMode: TransportMode = TransportMode.DRIVING
 ): UseHealthScoreReturn {
 	const result = useMemo(() => {
-		if (!bestRouteStats) {
+		if (!selectedRouteStats) {
 			return {
 				exposureScore: null,
 				doseReduction: 0,
@@ -40,23 +40,25 @@ export function useHealthScore(
 			};
 		}
 
-		// Calculate dose for the green route
-		const greenDose = estimateSimpleExposure(
-			bestRouteStats.avgPm25,
-			bestRouteStats.durationMin,
-			transportMode,
+		const selectedDose = estimateSimpleExposure(
+			selectedRouteStats.avgPm25,
+			selectedRouteStats.durationMin,
+			transportMode
 		);
 
-		// Calculate dose for the default route (if available)
-		const defaultDose =
-			defaultDurationMin > 0 && defaultPm25 > 0
-				? estimateSimpleExposure(defaultPm25, defaultDurationMin, transportMode)
-				: greenDose * 1.2; // Estimate: default is ~20% worse if unknown
+		const referenceDose =
+			referenceDurationMin > 0 && referencePm25 > 0
+				? estimateSimpleExposure(
+						referencePm25,
+						referenceDurationMin,
+						transportMode
+				  )
+				: selectedDose;
 
-		const reduction = calculateDoseReduction(greenDose, defaultDose);
+		const reduction = calculateDoseReduction(selectedDose, referenceDose);
 
 		const exposureScore: ExposureScore = {
-			totalDose: greenDose,
+			totalDose: selectedDose,
 			doseReduction: reduction,
 			segmentScores: [], // Simplified — no per-segment data from current backend
 			transportMode,
@@ -65,12 +67,12 @@ export function useHealthScore(
 		return {
 			exposureScore,
 			doseReduction: reduction,
-			isVulnerableWarning: isVulnerable && bestRouteStats.avgPm25 > 100,
+			isVulnerableWarning: isVulnerable && selectedRouteStats.avgPm25 > 100,
 		};
 	}, [
-		bestRouteStats,
-		defaultDurationMin,
-		defaultPm25,
+		selectedRouteStats,
+		referenceDurationMin,
+		referencePm25,
 		isVulnerable,
 		transportMode,
 	]);

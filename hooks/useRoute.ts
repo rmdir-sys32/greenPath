@@ -1,7 +1,7 @@
 /**
  * useRoute — Route fetching state machine.
  * Calls routeService when start + destination are both set.
- * Returns ALL routes (up to 3) with per-route AQI data.
+ * Returns all discovered routes (target >=5) with per-route AQI data.
  *
  * States: idle → loading → success | error
  */
@@ -15,7 +15,7 @@ import type {
 	RouteState,
 	ScoredRouteInfo,
 } from "@/types/route";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface UseRouteReturn {
 	routeData: RouteFeatureCollection | null;
@@ -29,21 +29,44 @@ interface UseRouteReturn {
 
 export function useRoute(
 	start: Coordinates | null,
-	destination: Coordinates | null,
+	destination: Coordinates | null
 ): UseRouteReturn {
 	const [routeData, setRouteData] = useState<RouteFeatureCollection | null>(
-		null,
+		null
 	);
 	const [routeState, setRouteState] = useState<RouteState>("idle");
 	const [scoredRoutes, setScoredRoutes] = useState<ScoredRouteInfo[]>([]);
 	const [selectedIndex, setSelectedIndex] = useState<number>(0);
 	const [error, setError] = useState<string | null>(null);
+	const lastRequestKeyRef = useRef<string | null>(null);
+	const inFlightKeyRef = useRef<string | null>(null);
+
+	const buildRequestKey = useCallback(
+		(startCoords: Coordinates, destinationCoords: Coordinates): string => {
+			const [startLon, startLat] = startCoords;
+			const [endLon, endLat] = destinationCoords;
+			return [startLon, startLat, endLon, endLat]
+				.map((value) => value.toFixed(4))
+				.join("|");
+		},
+		[]
+	);
 
 	const fetchRoute = useCallback(async () => {
 		if (!start || !destination) {
 			setRouteState("idle");
 			return;
 		}
+
+		const requestKey = buildRequestKey(start, destination);
+		if (inFlightKeyRef.current === requestKey) {
+			return;
+		}
+		if (lastRequestKeyRef.current === requestKey && scoredRoutes.length > 0) {
+			return;
+		}
+
+		inFlightKeyRef.current = requestKey;
 
 		setRouteState("loading");
 		setError(null);
@@ -53,7 +76,7 @@ export function useRoute(
 				start[1],
 				start[0], // lat, lon
 				destination[1],
-				destination[0],
+				destination[0]
 			);
 
 			if (result) {
@@ -61,6 +84,7 @@ export function useRoute(
 				setScoredRoutes(result.scoredRoutes);
 				setSelectedIndex(result.bestIndex);
 				setRouteState("success");
+				lastRequestKeyRef.current = requestKey;
 			} else {
 				setRouteState("error");
 				setError("No routes found between these locations.");
@@ -68,8 +92,10 @@ export function useRoute(
 		} catch (err) {
 			setRouteState("error");
 			setError(err instanceof Error ? err.message : "Failed to fetch route");
+		} finally {
+			inFlightKeyRef.current = null;
 		}
-	}, [start, destination]);
+	}, [buildRequestKey, destination, scoredRoutes.length, start]);
 
 	useEffect(() => {
 		fetchRoute();

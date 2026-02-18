@@ -12,6 +12,7 @@ export const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
 
 export const ENDPOINTS = {
 	CLEAN_ROUTE: `${API_BASE_URL}/get-clean-route`,
+	SCORE_ROUTES: `${API_BASE_URL}/score-routes`,
 	HEALTH_CHECK: `${API_BASE_URL}/health`,
 } as const;
 
