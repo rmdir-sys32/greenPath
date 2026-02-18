@@ -1,84 +1,97 @@
+/**
+ * AirQualityCard — Displays current location AQI with pollutant breakdown.
+ * Refactored to use Tailwind classes instead of inline styles.
+ */
 
+'use client';
+
+import { AQI_LEVELS } from '@/lib/constants';
+import type { AirQualityResponse } from '@/types/airquality';
 import React from 'react';
-import { AirQualityResponse,AirQualityItem } from '@/types/airquality';
-interface Props {
+
+interface AirQualityCardProps {
     data: AirQualityResponse | null;
+    isLoading?: boolean;
 }
 
-const AirQualityCard: React.FC<Props> = ({ data }) => {
-    if (!data || !data.list || data.list.length === 0) return null;
+const AirQualityCard: React.FC<AirQualityCardProps> = ({ data, isLoading }) => {
+    if (isLoading) {
+        return (
+            <div className="absolute top-4 right-4 z-20 w-72 bg-white/95 backdrop-blur-sm rounded-xl shadow-xl border border-gray-200 p-4">
+                <div className="animate-pulse space-y-3">
+                    <div className="h-4 bg-gray-200 rounded w-2/3" />
+                    <div className="grid grid-cols-2 gap-2">
+                        <div className="h-12 bg-gray-100 rounded-lg" />
+                        <div className="h-12 bg-gray-100 rounded-lg" />
+                        <div className="h-12 bg-gray-100 rounded-lg" />
+                        <div className="h-12 bg-gray-100 rounded-lg" />
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (!data?.list?.length) return null;
 
     const { main, components } = data.list[0];
     const { aqi } = main;
     const { pm2_5, pm10, o3, no2 } = components;
 
-    const getStatus = (aqiValue: number) => {
-        switch (aqiValue) {
-            case 1: return { color: '#00e400', text: 'Good', bg: 'rgba(0, 228, 0, 0.2)' };
-            case 2: return { color: '#ffff00', text: 'Fair', bg: 'rgba(255, 255, 0, 0.2)' };
-            case 3: return { color: '#ff7e00', text: 'Moderate', bg: 'rgba(255, 126, 0, 0.2)' };
-            case 4: return { color: '#ff0000', text: 'Poor', bg: 'rgba(255, 0, 0, 0.2)' };
-            case 5: return { color: '#8f3f97', text: 'Very Poor', bg: 'rgba(143, 63, 151, 0.2)' };
-            default: return { color: '#ccc', text: 'Unknown', bg: '#eee' };
-        }
-    };
-
-    const status = getStatus(aqi);
+    const level = AQI_LEVELS.find((l) => l.max >= aqi) || AQI_LEVELS[AQI_LEVELS.length - 1];
 
     return (
-        <div style={{
-            position: 'absolute',
-            top: '20px',
-            right: '20px',
-            background: 'white',
-            padding: '16px',
-            borderRadius: '12px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            width: '280px',
-            zIndex: 10,
-            fontFamily: 'system-ui, sans-serif'
-        }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <h3 style={{ margin: 0, fontSize: '16px', color: '#333' }}>Air Quality</h3>
-                <span style={{
-                    backgroundColor: status.bg,
-                    color: aqi === 2 ? '#333' : status.color,
-                    padding: '4px 8px',
-                    borderRadius: '12px',
-                    fontSize: '12px',
-                    fontWeight: 'bold',
-                    border: `1px solid ${status.color}`
-                }}>
-                    AQI {aqi}/5 • {status.text}
+        <div className="absolute top-4 right-2 md:right-4 z-20 w-56 md:w-72 bg-white/95 backdrop-blur-sm rounded-xl shadow-xl border border-gray-200 overflow-hidden">
+            {/* Header */}
+            <div className="flex justify-between items-center px-4 py-3 border-b border-gray-100">
+                <h3 className="text-sm font-semibold text-gray-800">Air Quality</h3>
+                <span
+                    className="text-xs font-bold px-2.5 py-1 rounded-full border"
+                    style={{
+                        backgroundColor: level.bg,
+                        color: aqi === 2 ? '#333' : level.color,
+                        borderColor: level.color,
+                    }}
+                >
+                    AQI {aqi}/5 • {level.label}
                 </span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            {/* Pollutant Grid */}
+            <div className="grid grid-cols-2 gap-2 p-3">
                 <PollutantItem label="PM2.5" value={pm2_5} unit="µg/m³" isHigh={pm2_5 > 15} />
                 <PollutantItem label="PM10" value={pm10} unit="µg/m³" isHigh={pm10 > 45} />
                 <PollutantItem label="Ozone" value={o3} unit="µg/m³" isHigh={o3 > 100} />
-                <PollutantItem label="NO2" value={no2} unit="µg/m³" isHigh={no2 > 25} />
+                <PollutantItem label="NO₂" value={no2} unit="µg/m³" isHigh={no2 > 25} />
             </div>
 
-            <p style={{ fontSize: '11px', color: '#666', marginTop: '12px', marginBottom: 0 }}>
-                Location: Chinhat / Gomti Nagar Ext.
-            </p>
+            {/* Footer */}
+            <div className="px-4 py-2 bg-gray-50 border-t border-gray-100">
+                <p className="text-[10px] text-gray-500">
+                    📍 {data.coord ? `${data.coord.lat.toFixed(4)}°N, ${data.coord.lon.toFixed(4)}°E` : 'Current location'}
+                </p>
+            </div>
         </div>
     );
 };
 
-const PollutantItem = ({ label, value, unit, isHigh }: { label: string, value: number, unit: string, isHigh: boolean }) => (
-    <div style={{
-        background: '#f8f9fa',
-        padding: '8px',
-        borderRadius: '8px',
-        borderLeft: isHigh ? '3px solid #ff4d4f' : '3px solid #52c41a'
-    }}>
-        <div style={{ fontSize: '11px', color: '#888' }}>{label}</div>
-        <div style={{ fontSize: '14px', fontWeight: '600', color: '#333' }}>
-            {value} <span style={{ fontSize: '10px', fontWeight: 'normal' }}>{unit}</span>
+const PollutantItem = ({
+    label,
+    value,
+    unit,
+    isHigh,
+}: {
+    label: string;
+    value: number;
+    unit: string;
+    isHigh: boolean;
+}) => (
+    <div className={`bg-gray-50 p-2.5 rounded-lg border-l-[3px] ${isHigh ? 'border-red-400' : 'border-green-400'
+        }`}>
+        <div className="text-[10px] text-gray-400 uppercase tracking-wide">{label}</div>
+        <div className="text-sm font-semibold text-gray-800">
+            {value.toFixed(1)} <span className="text-[9px] font-normal text-gray-400">{unit}</span>
         </div>
     </div>
 );
 
-export default AirQualityCard; 
+export default AirQualityCard;

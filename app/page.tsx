@@ -1,77 +1,139 @@
-'use client'
-import Map from "@/components/Map";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { getUserLocation } from "@/utils/getUserLocation";
-import { useEffect, useRef, useState } from "react";
+/**
+ * Home Page — Composition layer.
+ * Composes hooks and components together. ZERO business logic.
+ *
+ * Architecture: Hooks → Data → Components → UI
+ */
+
+'use client';
+
+import AQIInfoButton from '@/components/AQIInfoButton';
+import HealthExposureWidget from '@/components/HealthExposureWidget';
+import LoadingOverlay from '@/components/LoadingOverlay';
+import Map from '@/components/Map';
+import PollutionChart from '@/components/PollutionChart';
+import RouteComparisonPanel from '@/components/RouteComparisonPanel';
+import RouteStatsBar from '@/components/RouteStatsBar';
+import SearchBar from '@/components/SearchBar';
+import ThemeToggle from '@/components/ThemeToggle';
+import { useAirQuality } from '@/hooks/useAirQuality';
+import { useHealthScore } from '@/hooks/useHealthScore';
+import { useRoute } from '@/hooks/useRoute';
+import { useUserLocation } from '@/hooks/useUserLocation';
+import type { Coordinates } from '@/types/location';
+import { useState } from 'react';
 
 export default function Home() {
-  // userLocation is now [number, number] | null
-  const { userLocation } = getUserLocation();
-  const destination = [81.0983169, 26.951515];
+  // ─── Hooks: Data Layer ─────────────────────────────────────────
+  const {
+    location: userLocation,
+    isManual,
+    setManualLocation,
+    resetToGPS,
+  } = useUserLocation();
 
-  const [isFocused, setIsFocused] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  // 📱 Mobile Keyboard Logic: Unfocus when "Back" button is pressed
-  useEffect(() => {
-    const handleResize = () => {
-      if (typeof window !== "undefined" && window.visualViewport) {
-        // If viewport height > 80% of screen, keyboard is closed
-        if (window.visualViewport.height > window.innerHeight * 0.8) {
-          setIsFocused(false);
-          inputRef.current?.blur();
-        }
-      }
-    };
+  const [destination, setDestination] = useState<Coordinates | null>(null);
 
-    if (typeof window !== "undefined" && window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleResize);
+  const {
+    routeData,
+    routeState,
+    scoredRoutes,
+    selectedIndex,
+    setSelectedIndex,
+  } = useRoute(userLocation, destination);
+
+  const { aqiData, isLoading: aqiLoading } = useAirQuality(userLocation);
+
+  // Derive stats from selected route
+  const selectedRoute = scoredRoutes[selectedIndex] ?? null;
+  const bestRoute = scoredRoutes[0] ?? null;
+  const worstRoute = scoredRoutes[scoredRoutes.length - 1] ?? null;
+
+  const bestStats = bestRoute
+    ? {
+      avgPm25: bestRoute.avgPm25,
+      durationMin: bestRoute.durationMin,
+      distanceKm: bestRoute.distanceKm,
     }
-    return () => {
-      if (typeof window !== "undefined" && window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', handleResize);
-      }
-    };
-  }, []);
+    : null;
 
+  // Health score: compare best route vs worst route
+  const { exposureScore, doseReduction, isVulnerableWarning } = useHealthScore(
+    bestStats,
+    worstRoute?.durationMin ?? 0,
+    worstRoute?.avgPm25 ?? 0,
+  );
+
+  // ─── Handlers ──────────────────────────────────────────────────
+  const handleStartChange = (coords: Coordinates) => {
+    setManualLocation(coords);
+  };
+
+  const handleDestinationChange = (coords: Coordinates) => {
+    setDestination(coords);
+  };
+
+  // ─── Render ────────────────────────────────────────────────────
   return (
-    <main className="relative z-10 flex flex-col items-center w-screen h-[100dvh] mx-auto my-auto overflow-hidden">
+    <main className="relative z-10 flex flex-col items-center w-screen h-[100dvh] bg-gray-50 dark:bg-gray-900 transition-colors">
+      <div className="relative flex flex-col w-full h-full">
+        {/* Map — Full screen background with AQI markers */}
+        <Map
+          userLocation={userLocation}
+          destination={destination}
+          routeGeoJSON={routeData}
+          aqiSamples={selectedRoute?.aqiSamples}
+        />
 
-      <div className='relative flex flex-col -z-10 w-full h-full md:w-4/5 md:h-4/5 border-black bg-gray-200 my-auto md:border rounded-xl shadow-xl overflow-hidden'>
+        {/* Loading Overlay */}
+        {routeState === 'loading' && <LoadingOverlay />}
 
-        {/* Pass array directly to Map */}
-        <Map userLocation={userLocation} destination={destination} />
+        {/* Dark Mode Toggle */}
+        <ThemeToggle />
 
-        {/* Display Coordinates (Array Indexing) */}
-        <div className="absolute top-4 left-4 bg-white/90 backdrop-blur p-2 px-3 rounded-lg text-xs font-mono shadow-sm z-10 border border-gray-200">
-          📍 {userLocation ? `${userLocation[1].toFixed(4)}, ${userLocation[0].toFixed(4)}` : "Locating..."}
-        </div>
+        {/* AQI Info Button — Collapsible (only when no route comparison) */}
+        {routeState !== 'success' && <AQIInfoButton data={aqiData} isLoading={aqiLoading} />}
 
-        {/* <AirQualityCard data={DEFAULT_DATA} /> */}
+        {/* Route Comparison Panel — All routes with stats */}
+        {routeState === 'success' && scoredRoutes.length > 0 && (
+          <RouteComparisonPanel
+            routes={scoredRoutes}
+            selectedIndex={selectedIndex}
+            onSelectRoute={setSelectedIndex}
+          />
+        )}
 
-        {/* 📱 Dynamic Input Box */}
-        <div
-          className={`
-            absolute left-1/2 -translate-x-1/2 z-20 w-full flex justify-center 
-            transition-all duration-300 ease-out
-            /* Mobile: Move to 40% from bottom if focused */
-            ${isFocused ? 'bottom-[40%]' : 'bottom-6'} 
-            /* PC: Always bottom-6 */
-            md:bottom-6
-          `}
-        >
-          <div className="flex w-11/12 md:w-1/3 gap-2 bg-white p-2 rounded-xl shadow-2xl">
-            <Input
-              ref={inputRef}
-              className="relative bg-gray-50 border-gray-200 text-black placeholder:text-gray-400 focus-visible:ring-offset-0"
-              placeholder="Enter Destination"
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
-            />
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white">Go</Button>
-          </div>
-        </div>
+        {/* Health Exposure Widget — Top Right (when route found) */}
+        {routeState === 'success' && (
+          <HealthExposureWidget
+            exposureScore={exposureScore}
+            doseReduction={doseReduction}
+            isVulnerableWarning={isVulnerableWarning}
+          />
+        )}
 
+        {/* Pollution Chart — Desktop only */}
+        {routeState === 'success' && selectedRoute && selectedRoute.aqiSamples.length > 0 && (
+          <PollutionChart samples={selectedRoute.aqiSamples} />
+        )}
+
+        {/* Route Stats Bar — Bottom (above search) */}
+        {routeState === 'success' && bestStats && exposureScore && (
+          <RouteStatsBar
+            stats={bestStats}
+            doseReduction={doseReduction}
+            inhaledDose={exposureScore.totalDose}
+          />
+        )}
+
+        {/* Search Bar — Bottom Center */}
+        <SearchBar
+          onStartChange={handleStartChange}
+          onDestinationChange={handleDestinationChange}
+          onResetGPS={resetToGPS}
+          isManualStart={isManual}
+          userLocation={userLocation}
+        />
       </div>
     </main>
   );

@@ -1,0 +1,87 @@
+/**
+ * useRoute — Route fetching state machine.
+ * Calls routeService when start + destination are both set.
+ * Returns ALL routes (up to 3) with per-route AQI data.
+ *
+ * States: idle → loading → success | error
+ */
+
+"use client";
+
+import { fetchBestRoute } from "@/services/routeService";
+import type { Coordinates } from "@/types/location";
+import type {
+	RouteFeatureCollection,
+	RouteState,
+	ScoredRouteInfo,
+} from "@/types/route";
+import { useCallback, useEffect, useState } from "react";
+
+interface UseRouteReturn {
+	routeData: RouteFeatureCollection | null;
+	routeState: RouteState;
+	scoredRoutes: ScoredRouteInfo[];
+	selectedIndex: number;
+	setSelectedIndex: (i: number) => void;
+	error: string | null;
+	refetch: () => void;
+}
+
+export function useRoute(
+	start: Coordinates | null,
+	destination: Coordinates | null,
+): UseRouteReturn {
+	const [routeData, setRouteData] = useState<RouteFeatureCollection | null>(
+		null,
+	);
+	const [routeState, setRouteState] = useState<RouteState>("idle");
+	const [scoredRoutes, setScoredRoutes] = useState<ScoredRouteInfo[]>([]);
+	const [selectedIndex, setSelectedIndex] = useState<number>(0);
+	const [error, setError] = useState<string | null>(null);
+
+	const fetchRoute = useCallback(async () => {
+		if (!start || !destination) {
+			setRouteState("idle");
+			return;
+		}
+
+		setRouteState("loading");
+		setError(null);
+
+		try {
+			const result = await fetchBestRoute(
+				start[1],
+				start[0], // lat, lon
+				destination[1],
+				destination[0],
+			);
+
+			if (result) {
+				setRouteData(result.geoJSON);
+				setScoredRoutes(result.scoredRoutes);
+				setSelectedIndex(result.bestIndex);
+				setRouteState("success");
+			} else {
+				setRouteState("error");
+				setError("No routes found between these locations.");
+			}
+		} catch (err) {
+			setRouteState("error");
+			setError(err instanceof Error ? err.message : "Failed to fetch route");
+		}
+	}, [start, destination]);
+
+	useEffect(() => {
+		fetchRoute();
+	}, [fetchRoute]);
+
+	return {
+		routeData,
+		routeState,
+		scoredRoutes,
+		selectedIndex,
+		setSelectedIndex,
+		error,
+		refetch: fetchRoute,
+	};
+}
