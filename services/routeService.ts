@@ -1,5 +1,5 @@
 /**
- * Route Service — API client for the GreenPath backend.
+ * Route Service — API client for the Vayu backend.
  * NO React. NO hooks. Pure async functions.
  */
 
@@ -34,14 +34,14 @@ export async function fetchBestRoute(
 	startLat: number,
 	startLon: number,
 	endLat: number,
-	endLon: number
+	endLon: number,
 ): Promise<ParsedRouteResult | null> {
 	try {
 		const candidates = await fetchRouteCandidates(
 			startLat,
 			startLon,
 			endLat,
-			endLon
+			endLon,
 		);
 
 		if (!candidates.length) return null;
@@ -59,7 +59,7 @@ export async function fetchBestRoute(
 			payload,
 			{
 				timeout: 45000,
-			}
+			},
 		);
 
 		if (!response.data?.routes?.length) return null;
@@ -82,7 +82,7 @@ async function fetchRouteCandidates(
 	startLat: number,
 	startLon: number,
 	endLat: number,
-	endLon: number
+	endLon: number,
 ): Promise<RouteCandidateInput[]> {
 	const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 	if (!token) {
@@ -107,7 +107,7 @@ async function fetchRouteCandidates(
 		[startLon, startLat],
 		[endLon, endLat],
 		token,
-		true
+		true,
 	);
 	addRoutes(baseRoutes);
 
@@ -116,7 +116,7 @@ async function fetchRouteCandidates(
 			startLat,
 			startLon,
 			endLat,
-			endLon
+			endLon,
 		);
 		for (const waypoint of variants) {
 			if (uniqueRoutes.size >= 5) break;
@@ -125,7 +125,7 @@ async function fetchRouteCandidates(
 				[endLon, endLat],
 				token,
 				false,
-				[waypoint.lon, waypoint.lat]
+				[waypoint.lon, waypoint.lat],
 			);
 			addRoutes(variantRoutes);
 		}
@@ -143,7 +143,7 @@ function geometrySignature(geometry: GeoJSON.Geometry): string {
 	const last = coords[coords.length - 1];
 	const mid = coords[Math.floor(coords.length / 2)];
 	return `${round(first[0])},${round(first[1])}|${round(mid[0])},${round(
-		mid[1]
+		mid[1],
 	)}|${round(last[0])},${round(last[1])}|${coords.length}`;
 }
 
@@ -152,7 +152,7 @@ async function callMapboxDirections(
 	end: [number, number],
 	token: string,
 	includeAlternatives: boolean,
-	waypoint?: [number, number]
+	waypoint?: [number, number],
 ): Promise<
 	Array<{ geometry: GeoJSON.Geometry; duration: number; distance: number }>
 > {
@@ -191,7 +191,7 @@ function generateWaypointVariants(
 	startLat: number,
 	startLon: number,
 	endLat: number,
-	endLon: number
+	endLon: number,
 ): Array<{ lat: number; lon: number }> {
 	const midLat = (startLat + endLat) / 2;
 	const midLon = (startLon + endLon) / 2;

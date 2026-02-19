@@ -1,6 +1,7 @@
-# GreenPath UI (Next.js)
+# Vayu UI (Next.js)
 
-Frontend for GreenPath: pollution-aware route discovery and comparison UI.
+Frontend for Vayu: pollution-aware route discovery and comparison UI.
+
 
 ## Stack
 
@@ -13,7 +14,7 @@ Frontend for GreenPath: pollution-aware route discovery and comparison UI.
 ## Project Architecture
 
 ```
-greenpath-ui/
+vayu-ui/
 ├─ app/
 │  ├─ page.tsx                     # composition root for app experience
 │  └─ api/geocode/route.ts         # proxy to Nominatim geocoding API
@@ -83,11 +84,11 @@ npm run start
 ### Build & Run (direct)
 
 ```bash
-docker build -t greenpath-ui .
+docker build -t vayu-ui .
 docker run --rm -p 3000:3000 \
 	-e NEXT_PUBLIC_API_URL=http://host.docker.internal:8000 \
 	-e NEXT_PUBLIC_MAPBOX_TOKEN=your_mapbox_public_token \
-	greenpath-ui
+	vayu-ui
 ```
 
 ### Docker Compose

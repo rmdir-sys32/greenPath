@@ -50,10 +50,10 @@ export default function Home() {
 
 	const selectedStats = selectedRoute
 		? {
-				avgPm25: selectedRoute.avgPm25,
-				durationMin: selectedRoute.durationMin,
-				distanceKm: selectedRoute.distanceKm,
-		  }
+			avgPm25: selectedRoute.avgPm25,
+			durationMin: selectedRoute.durationMin,
+			distanceKm: selectedRoute.distanceKm,
+		}
 		: null;
 
 	// Health score: compare selected route against greenest reference route
@@ -87,8 +87,7 @@ export default function Home() {
 				{/* Loading Overlay */}
 				{routeState === "loading" && <LoadingOverlay />}
 
-				{/* Dark Mode Toggle */}
-				<ThemeToggle />
+				
 
 				{/* AQI Info Button — Collapsible (only when no route comparison) */}
 				{routeState !== "success" && (
@@ -108,13 +107,7 @@ export default function Home() {
 				)}
 
 				{/* Health Exposure Widget — Top Right (when route found) */}
-				{routeState === "success" && (
-					<HealthExposureWidget
-						exposureScore={exposureScore}
-						doseReduction={doseReduction}
-						isVulnerableWarning={isVulnerableWarning}
-					/>
-				)}
+ 
 
 				{/* Pollution Chart — Desktop only */}
 				{routeState === "success" &&

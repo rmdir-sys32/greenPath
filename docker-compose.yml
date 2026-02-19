@@ -1,9 +1,9 @@
 services:
-  greenpath-ui:
+  vayu-ui:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: greenpath-ui
+    container_name: vayu-ui
     ports:
       - "3000:3000"
     environment:

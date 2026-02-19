@@ -57,7 +57,7 @@ export async function GET(request: Request) {
 
 		const response = await fetch(`${endpoint}?${params.toString()}`, {
 			headers: {
-				"User-Agent": "GreenPath/1.0 (contact: [EMAIL_ADDRESS])", // Required by Nominatim
+				"User-Agent": "Vayu/1.0 (contact: [EMAIL_ADDRESS])", // Required by Nominatim
 				Referer: "http://localhost:3001",
 			},
 		});

@@ -1,8 +1,3 @@
-/**
- * SearchBar — Unified start/destination search with autocomplete.
- * Consumes useGeocoder hook for debounced results.
- */
-
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -10,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useGeocoder } from "@/hooks/useGeocoder";
 import { getCoordinatesForQuery } from "@/services/geocodingService";
 import type { Coordinates, GeocodingResult } from "@/types/location";
+import { MapPin, Navigation } from "lucide-react";
 import React, { useState } from "react";
 
 interface SearchBarProps {
@@ -35,7 +31,6 @@ const SearchBar: React.FC<SearchBarProps> = ({
 
 	const { results, isSearching, search, clear } = useGeocoder(userLocation);
 
-	// Handle autocomplete selection
 	const handleSelect = (result: GeocodingResult) => {
 		const selectedLabel =
 			result.displayLabel || result.placeName || result.text;
@@ -50,7 +45,6 @@ const SearchBar: React.FC<SearchBarProps> = ({
 		setActiveField(null);
 	};
 
-	// Handle "Enter" key fallback (if no autocomplete selected)
 	const handleStartSearch = async () => {
 		if (!startInput.trim()) return;
 		const coords = await getCoordinatesForQuery(
@@ -95,39 +89,45 @@ const SearchBar: React.FC<SearchBarProps> = ({
 	};
 
 	return (
-		<div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 w-11/12 md:w-2/5 flex flex-col gap-2">
-			{/* Autocomplete Dropdown */}
+		<div className="absolute bottom-0 left-0 w-full h-[25vh] z-20 flex flex-col justify-center gap-4 bg-white   rounded-t-3xl shadow-[0_-8px_30px_rgba(0,0,0,0.12)] px-6 md:px-20 py-6 border-t border-gray-100  ">
+
+			{/* Autocomplete Dropdown - Floating above */}
 			{results.length > 0 && activeField && (
-				<div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 max-h-48 overflow-y-auto">
+				<div className="absolute bottom-[26vh] left-6 right-6 md:left-20 md:right-20 bg-white   rounded-xl shadow-2xl border border-gray-100 max-h-64 overflow-y-auto z-30">
 					{isSearching && (
-						<div className="px-4 py-2 text-xs text-gray-400 text-center">
-							Searching...
+						<div className="px-6 py-4 text-sm text-gray-500 text-center font-medium">
+							Searching locations...
 						</div>
 					)}
 					{results.map((result, index) => (
 						<button
 							key={index}
 							onClick={() => handleSelect(result)}
-							className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm text-gray-800 dark:text-gray-200 border-b border-gray-100 dark:border-gray-700 last:border-b-0 transition-colors">
-							<div className="font-medium leading-tight">{result.text}</div>
-							{result.secondaryText && (
-								<div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-tight">
-									{result.secondaryText}
-								</div>
-							)}
+							className="w-full text-left px-6 py-4 hover:bg-blue-50   text-base md:text-lg text-gray-900  border-b border-gray-100 last:border-b-0 transition-colors flex items-center gap-3">
+							<MapPin className="w-5 h-5 text-gray-400 shrink-0" />
+							<div>
+								<div className="font-semibold">{result.text}</div>
+								{result.secondaryText && (
+									<div className="text-sm text-gray-500 mt-1">
+										{result.secondaryText}
+									</div>
+								)}
+							</div>
 						</button>
 					))}
 				</div>
 			)}
 
-			{/* Start Location */}
-			<div className="flex gap-2">
+			{/* Start Location Input Row */}
+			<div className="flex gap-4 items-center">
 				<div className="relative flex-1">
-					<div className="absolute left-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-blue-500 border-2 border-white shadow" />
+					<div className="absolute left-4 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-blue-500 ring-4 ring-blue-500/20" />
 					<Input
-						className="bg-white/95 backdrop-blur-sm text-black placeholder:text-gray-400 pl-8 border-gray-200 shadow-lg"
+						className="h-14 md:h-16 text-lg md:text-xl   pl-12 rounded-2xl focus-visible:ring-blue-500 shadow-sm transition-all"
 						placeholder={
-							isManualStart ? "Custom start location" : "📍 Using GPS location"
+							isManualStart
+								? "Enter start location"
+								: `Current Location (${userLocation?.[1].toFixed(4)}, ${userLocation?.[0].toFixed(4)})`
 						}
 						value={startInput}
 						onChange={(e) => handleStartInputChange(e.target.value)}
@@ -135,28 +135,28 @@ const SearchBar: React.FC<SearchBarProps> = ({
 						onKeyDown={(e) => e.key === "Enter" && handleStartSearch()}
 					/>
 				</div>
-				{isManualStart && (
-					<Button
-						onClick={() => {
-							setStartInput("");
-							onResetGPS();
-							clear();
-						}}
-						variant="outline"
-						className="bg-white/90 text-xs shadow-lg"
-						title="Reset to GPS">
-						📍
-					</Button>
-				)}
+
+				<Button
+					onClick={() => {
+						setStartInput("");
+						onResetGPS();
+						clear();
+					}}
+					variant="outline"
+					className="h-14 md:h-16 px-6 rounded-2xl border-gray-200   hover:bg-blue-50   text-blue-600  font-medium text-base shadow-sm"
+					title="Use Current Location">
+					<MapPin className="w-5 h-5 mr-2" />
+					Current
+				</Button>
 			</div>
 
-			{/* Destination */}
-			<div className="flex gap-2">
+			{/* Destination Input Row */}
+			<div className="flex gap-4 items-center">
 				<div className="relative flex-1">
-					<div className="absolute left-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-white shadow" />
+					<div className="absolute left-4 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-red-500 ring-4 ring-red-500/20" />
 					<Input
-						className="bg-gray-900/95 backdrop-blur-sm text-white placeholder:text-gray-400 pl-8 border-gray-700 shadow-lg"
-						placeholder="Enter destination..."
+						className="h-14 md:h-16 text-lg md:text-xl bg-gray-50  border-gray-200   pl-12 rounded-2xl focus-visible:ring-red-500 shadow-sm transition-all"
+						placeholder="Where to?"
 						value={destInput}
 						onChange={(e) => handleDestInputChange(e.target.value)}
 						onFocus={() => setActiveField("destination")}
@@ -165,8 +165,9 @@ const SearchBar: React.FC<SearchBarProps> = ({
 				</div>
 				<Button
 					onClick={handleDestSearch}
-					className="bg-green-600 hover:bg-green-700 text-white shadow-lg font-semibold">
-					🌿 Go
+					className="h-14 md:h-16 px-8 rounded-2xl bg-green-600 hover:bg-green-700 text-white font-bold text-lg shadow-lg shadow-green-600/20 transition-all hover:scale-105 active:scale-95">
+					<Navigation className="w-5 h-5 mr-2 fill-current" />
+					Go
 				</Button>
 			</div>
 		</div>

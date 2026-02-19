@@ -6,6 +6,7 @@
 'use client';
 
 import type { AQISamplePoint } from '@/types/route';
+import { BarChart2 } from 'lucide-react';
 import React from 'react';
 
 interface PollutionChartProps {
@@ -33,11 +34,12 @@ const PollutionChart: React.FC<PollutionChartProps> = ({ samples }) => {
     const maxPm25 = Math.max(...samples.map((s) => s.pm2_5), 50); // Min scale of 50
 
     return (
-        <div className="absolute bottom-4 right-4 z-20 w-64 hidden md:block">
+        <div className="absolute bottom-[28vh] right-4 z-20 w-64 hidden md:block transition-all duration-300">
             <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
-                    <h3 className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
-                        📊 PM2.5 Along Route
+                    <h3 className="text-xs font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
+                        <BarChart2 className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
+                        PM2.5 Along Route
                     </h3>
                     <p className="text-[10px] text-gray-400 mt-0.5">{samples.length} sample points</p>
                 </div>
@@ -50,13 +52,13 @@ const PollutionChart: React.FC<PollutionChartProps> = ({ samples }) => {
                                 <span className="text-[9px] text-gray-400 w-4 text-right font-mono">
                                     {i + 1}
                                 </span>
-                                <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+                                <div className="flex-1 h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                                     <div
                                         className={`h-full rounded-full transition-all duration-500 ${getBarColor(sample.pm2_5)}`}
                                         style={{ width: `${widthPct}%` }}
                                     />
                                 </div>
-                                <span className="text-[10px] font-semibold text-gray-700 w-8 text-right">
+                                <span className="text-[10px] font-semibold text-gray-700 dark:text-gray-300 w-8 text-right">
                                     {sample.pm2_5.toFixed(0)}
                                 </span>
                             </div>
@@ -74,7 +76,7 @@ const PollutionChart: React.FC<PollutionChartProps> = ({ samples }) => {
                     ].map((item) => (
                         <div key={item.label} className="flex items-center gap-1">
                             <div className={`w-2 h-2 rounded-full ${item.color}`} />
-                            <span className="text-[8px] text-gray-500">{item.label}</span>
+                            <span className="text-[8px] text-gray-500 dark:text-gray-400">{item.label}</span>
                         </div>
                     ))}
                 </div>

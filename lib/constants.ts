@@ -1,7 +1,4 @@
-/**
- * Application-wide constants. Single source of truth for API URLs,
- * default configurations, and scientific parameters.
- */
+ 
 
 import { TransportMode } from "@/types/health";
 
@@ -14,9 +11,9 @@ export const ENDPOINTS = {
 	CLEAN_ROUTE: `${API_BASE_URL}/get-clean-route`,
 	SCORE_ROUTES: `${API_BASE_URL}/score-routes`,
 	HEALTH_CHECK: `${API_BASE_URL}/health`,
-} as const;
+} as const; 
 
-// ─── Mapbox Configuration ─────────────────────────────────────────
+
 export const MAPBOX_GEOCODING_URL =
 	"https://api.mapbox.com/geocoding/v5/mapbox.places";
 export const MAPBOX_STYLE = "mapbox://styles/mapbox/streets-v12";
